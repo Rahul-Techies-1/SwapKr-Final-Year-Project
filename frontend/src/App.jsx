@@ -37,6 +37,10 @@ function App() {
   const [deleteMessage, setDeleteMessage] = useState("");
   const [deleteError, setDeleteError] = useState(false);
 
+  // WhatsApp contact states
+  const [contactingItemId, setContactingItemId] = useState(null);
+  const [contactMessage, setContactMessage] = useState("");
+
   // Edit listing states
   const [editingItem, setEditingItem] = useState(null);
   const [editForm, setEditForm] = useState({
@@ -54,6 +58,7 @@ function App() {
     email: "",
     password: "",
     college: "",
+    phone_number: "",
   });
 
   const [form, setForm] = useState({
@@ -208,6 +213,7 @@ function App() {
             email: authForm.email,
             password: authForm.password,
             college: authForm.college,
+            phone_number: authForm.phone_number,
           }),
         });
 
@@ -261,6 +267,7 @@ function App() {
         email: "",
         password: "",
         college: "",
+        phone_number: "",
       });
 
       await fetchMyListings(accessToken);
@@ -408,6 +415,68 @@ function App() {
       setDeleteMessage(err.message || "Something went wrong");
     } finally {
       setDeletingItemId(null);
+    }
+  };
+
+  // Contact seller through WhatsApp
+  const handleContactSeller = async (item) => {
+    if (!user || !token) {
+      setAuthMode("login");
+      setAuthMessage("Please login to contact the seller.");
+      setShowAuth(true);
+      return;
+    }
+
+    setContactingItemId(item.id);
+    setContactMessage("");
+
+    // Open a blank tab immediately to avoid popup blockers.
+    const whatsappWindow = window.open("about:blank", "_blank");
+
+    if (!whatsappWindow) {
+      setContactMessage(
+        "Please allow pop-ups for ReCampus to open WhatsApp."
+      );
+      setContactingItemId(null);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `${API_URL}/items/${item.id}/seller-contact`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Unable to get seller contact details."
+        );
+      }
+
+      const phone = data.phone_number.replace(/\D/g, "");
+
+      if (phone.length < 10) {
+        throw new Error("Seller's WhatsApp number is invalid.");
+      }
+
+      const whatsappMessage = `Hi ${data.name}, I'm interested in your item "${item.title}" listed on ReCampus. Is it still available?`;
+
+      const whatsappUrl =
+        `https://wa.me/${phone}?text=${encodeURIComponent(whatsappMessage)}`;
+
+      whatsappWindow.location.href = whatsappUrl;
+
+    } catch (err) {
+      whatsappWindow.close();
+      setContactMessage(err.message || "Unable to contact seller.");
+    } finally {
+      setContactingItemId(null);
     }
   };
 
@@ -755,6 +824,10 @@ function App() {
             <p className="status error">{error}</p>
           )}
 
+          {contactMessage && (
+            <p className="status error">{contactMessage}</p>
+          )}
+
           {!loading && !error && displayedItems.length === 0 && (
             <div className="empty-state">
               <div>{showMyListings ? "📋" : "📦"}</div>
@@ -827,6 +900,18 @@ function App() {
                         📍 {item.location || "Campus"}
                       </span>
                     </div>
+
+                    {!showMyListings && (
+                      <button
+                        className="contact-seller-button"
+                        onClick={() => handleContactSeller(item)}
+                        disabled={contactingItemId === item.id}
+                      >
+                        {contactingItemId === item.id
+                          ? "Connecting..."
+                          : "💬 Contact Seller on WhatsApp"}
+                      </button>
+                    )}
 
                     {showMyListings && (
                       <div className="my-listing-actions">
@@ -966,6 +1051,22 @@ function App() {
                       placeholder="Enter your college name"
                       minLength="2"
                       maxLength="150"
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    WhatsApp Number *
+                    <input
+                      type="tel"
+                      name="phone_number"
+                      value={authForm.phone_number}
+                      onChange={handleAuthChange}
+                      placeholder="+919876543210"
+                      pattern="^\+?[0-9]{10,19}$"
+                      title="Enter your number with country code, e.g. +919876543210"
+                      minLength="10"
+                      maxLength="20"
                       required
                     />
                   </label>

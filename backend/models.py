@@ -27,6 +27,8 @@ class User(Base):
 
     college = Column(String(150), nullable=False)
 
+    phone_number = Column(String(20), nullable=True)
+
     items = relationship("Item", back_populates="owner")
 
 

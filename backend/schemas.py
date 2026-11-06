@@ -9,6 +9,11 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
     college: str = Field(min_length=2, max_length=150)
+    phone_number: str = Field(
+        min_length=10,
+        max_length=20,
+        pattern=r"^\+?[0-9]{10,19}$"
+    )
 
 
 # Login request
@@ -23,6 +28,7 @@ class UserResponse(BaseModel):
     name: str
     email: EmailStr
     college: str
+    phone_number: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -60,3 +66,8 @@ class ItemUpdate(BaseModel):
     price: Optional[float] = Field(default=None, ge=0)
     category: Optional[str] = None
     location: Optional[str] = None
+
+# Seller contact response
+class SellerContactResponse(BaseModel):
+    name: str
+    phone_number: str

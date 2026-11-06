@@ -21,6 +21,16 @@ from auth import (
     create_access_token,
     get_current_user
 )
+from schemas import (
+    ItemCreate,
+    ItemUpdate,
+    ItemResponse,
+    UserCreate,
+    UserResponse,
+    UserLogin,
+    TokenResponse,
+    SellerContactResponse
+)
 
 app = FastAPI(title="ReCampus API")
 
@@ -53,6 +63,7 @@ def health_check():
 
 
 # Signup
+# Signup
 @app.post("/signup", response_model=UserResponse, status_code=201)
 def signup(user: UserCreate, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(
@@ -69,7 +80,8 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
         name=user.name,
         email=user.email,
         password=hash_password(user.password),
-        college=user.college
+        college=user.college,
+        phone_number=user.phone_number
     )
 
     db.add(new_user)
@@ -127,6 +139,48 @@ def get_items(db: Session = Depends(get_db)):
     return db.query(Item).filter(
         Item.is_available == True
     ).all()
+
+# Get seller contact details
+@app.get(
+    "/items/{item_id}/seller-contact",
+    response_model=SellerContactResponse
+)
+def get_seller_contact(
+    item_id: int,
+    user_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    item = db.query(Item).filter(
+        Item.id == item_id,
+        Item.is_available == True
+    ).first()
+
+    if not item:
+        raise HTTPException(
+            status_code=404,
+            detail="Item not found or no longer available"
+        )
+
+    if item.owner_id == user_id:
+        raise HTTPException(
+            status_code=400,
+            detail="You cannot contact yourself"
+        )
+
+    seller = db.query(User).filter(
+        User.id == item.owner_id
+    ).first()
+
+    if not seller or not seller.phone_number:
+        raise HTTPException(
+            status_code=404,
+            detail="Seller has not added a WhatsApp number"
+        )
+
+    return {
+        "name": seller.name,
+        "phone_number": seller.phone_number
+    }
 
 
 # Get logged-in user's listings

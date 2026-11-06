@@ -1028,3 +1028,59 @@ footer {
   overflow: hidden;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
+
+/* Contact Seller - ReCampus Theme */
+.contact-seller-button {
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  background: #245c3b;
+  color: #ffffff;
+
+  border: 1px solid #245c3b;
+  border-radius: 10px;
+
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.contact-seller-button:hover:not(:disabled) {
+  background: #17462c;
+  border-color: #17462c;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 12px rgba(36, 92, 59, 0.18);
+}
+
+.contact-seller-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.contact-seller-button:focus-visible {
+  outline: 3px solid rgba(36, 92, 59, 0.25);
+  outline-offset: 3px;
+}
+
+.contact-seller-button:disabled {
+  background: #8da997;
+  border-color: #8da997;
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.contact-message {
+  margin-top: 14px;
+  color: #b54747;
+  font-size: 13px;
+  font-weight: 600;
+}

@@ -1,20 +1,26 @@
-from fastapi import FastAPI, Depends
+
+from fastapi import FastAPI, Depends, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
 from database import SessionLocal
-from models import Item
-from schemas import ItemCreate, ItemResponse
-from fastapi import UploadFile, File, HTTPException
+from models import Item, User
+from schemas import (
+    ItemCreate,
+    ItemUpdate,
+    ItemResponse,
+    UserCreate,
+    UserResponse,
+    UserLogin,
+    TokenResponse
+)
 from storage import upload_item_image
-from fastapi import HTTPException
-from models import User
-from schemas import UserCreate, UserResponse
-
-from auth import hash_password, verify_password, create_access_token
-from schemas import UserLogin, TokenResponse
-
-from auth import get_current_user
+from auth import (
+    hash_password,
+    verify_password,
+    create_access_token,
+    get_current_user
+)
 
 app = FastAPI(title="ReCampus API")
 
@@ -30,7 +36,6 @@ app.add_middleware(
 # Database session
 def get_db():
     db = SessionLocal()
-
     try:
         yield db
     finally:
@@ -46,10 +51,10 @@ def home():
 def health_check():
     return {"status": "ReCampus backend is running"}
 
+
+# Signup
 @app.post("/signup", response_model=UserResponse, status_code=201)
 def signup(user: UserCreate, db: Session = Depends(get_db)):
-
-    # Check whether email already exists
     existing_user = db.query(User).filter(
         User.email == user.email
     ).first()
@@ -60,14 +65,10 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
             detail="Email is already registered"
         )
 
-    # Hash password
-    hashed_password = hash_password(user.password)
-
-    # Create new student
     new_user = User(
         name=user.name,
         email=user.email,
-        password=hashed_password,
+        password=hash_password(user.password),
         college=user.college
     )
 
@@ -78,15 +79,13 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
     return new_user
 
 
+# Login
 @app.post("/login", response_model=TokenResponse)
 def login(user: UserLogin, db: Session = Depends(get_db)):
-
-    # Find student by email
     existing_user = db.query(User).filter(
         User.email == user.email
     ).first()
 
-    # Verify email and password
     if not existing_user or not verify_password(
         user.password, existing_user.password
     ):
@@ -95,7 +94,6 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
             detail="Invalid email or password"
         )
 
-    # Generate JWT token
     access_token = create_access_token(existing_user.id)
 
     return {
@@ -104,6 +102,7 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     }
 
 
+# Current user profile
 @app.get("/me", response_model=UserResponse)
 def get_my_profile(
     user_id: int = Depends(get_current_user),
@@ -122,37 +121,32 @@ def get_my_profile(
     return current_user
 
 
-
-
-# Get all marketplace items
+# Get all available marketplace items
 @app.get("/items", response_model=list[ItemResponse])
 def get_items(db: Session = Depends(get_db)):
-    return db.query(Item).filter(Item.is_available == True).all()
+    return db.query(Item).filter(
+        Item.is_available == True
+    ).all()
 
 
+# Get logged-in user's listings
 @app.get("/my-listings", response_model=list[ItemResponse])
 def get_my_listings(
     user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Fetch only the logged-in student's listings
-    my_items = db.query(Item).filter(
+    return db.query(Item).filter(
         Item.owner_id == user_id
     ).all()
 
-    return my_items
 
-
-
-# Add a new marketplace item
-
+# Create a listing
 @app.post("/items", response_model=ItemResponse)
 def create_item(
     item: ItemCreate,
     user_id: int = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Verify that the logged-in student exists
     current_user = db.query(User).filter(
         User.id == user_id
     ).first()
@@ -163,7 +157,6 @@ def create_item(
             detail="User account not found"
         )
 
-    # Automatically assign listing to logged-in student
     new_item = Item(
         **item.model_dump(),
         owner_id=user_id
@@ -176,9 +169,59 @@ def create_item(
     return new_item
 
 
+# Update an existing listing
+@app.put("/items/{item_id}", response_model=ItemResponse)
+def update_item(
+    item_id: int,
+    item_data: ItemUpdate,
+    user_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    item = db.query(Item).filter(
+        Item.id == item_id,
+        Item.owner_id == user_id
+    ).first()
+
+    if not item:
+        raise HTTPException(
+            status_code=404,
+            detail="Item not found or you don't have permission to edit it"
+        )
+
+    update_data = item_data.model_dump(exclude_unset=True)
+
+    if not update_data:
+        raise HTTPException(
+            status_code=400,
+            detail="Please provide at least one field to update"
+        )
+
+    if "title" in update_data and (
+        update_data["title"] is None or not update_data["title"].strip()
+    ):
+        raise HTTPException(
+            status_code=422,
+            detail="Item title cannot be empty"
+        )
+
+    if "price" in update_data and update_data["price"] is None:
+        raise HTTPException(
+            status_code=422,
+            detail="Price cannot be empty"
+        )
+
+    for field, value in update_data.items():
+        setattr(item, field, value)
+
+    db.commit()
+    db.refresh(item)
+
+    return item
+
+
+# Upload item image
 @app.post("/upload-image")
 async def upload_image(file: UploadFile = File(...)):
-
     allowed_types = {
         "image/jpeg": "jpg",
         "image/png": "png",
@@ -222,3 +265,28 @@ async def upload_image(file: UploadFile = File(...)):
             status_code=500,
             detail=f"Image upload failed: {str(e)}"
         )
+
+
+# Delete a listing
+@app.delete("/items/{item_id}")
+def delete_item(
+    item_id: int,
+    user_id: int = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    item = db.query(Item).filter(
+        Item.id == item_id,
+        Item.owner_id == user_id
+    ).first()
+
+    if not item:
+        raise HTTPException(
+            status_code=404,
+            detail="Item not found or you don't have permission to delete it"
+        )
+
+    db.delete(item)
+    db.commit()
+
+    return {"message": "Item deleted successfully"}
+

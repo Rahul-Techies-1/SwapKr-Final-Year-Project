@@ -32,6 +32,23 @@ function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
+  // Delete listing states
+  const [deletingItemId, setDeletingItemId] = useState(null);
+  const [deleteMessage, setDeleteMessage] = useState("");
+  const [deleteError, setDeleteError] = useState(false);
+
+  // Edit listing states
+  const [editingItem, setEditingItem] = useState(null);
+  const [editForm, setEditForm] = useState({
+    title: "",
+    description: "",
+    price: "0",
+    category: "Books",
+    location: "",
+  });
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editMessage, setEditMessage] = useState("");
+
   const [authForm, setAuthForm] = useState({
     name: "",
     email: "",
@@ -154,6 +171,15 @@ function App() {
     }));
   };
 
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+
+    setEditForm((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+  };
+
   const handleAuthChange = (e) => {
     const { name, value } = e.target;
 
@@ -188,13 +214,10 @@ function App() {
         const signupData = await signupResponse.json();
 
         if (!signupResponse.ok) {
-          throw new Error(
-            signupData.detail || "Signup failed"
-          );
+          throw new Error(signupData.detail || "Signup failed");
         }
       }
 
-      // Login after signup or normal login
       const loginResponse = await fetch(`${API_URL}/login`, {
         method: "POST",
         headers: {
@@ -209,14 +232,11 @@ function App() {
       const loginData = await loginResponse.json();
 
       if (!loginResponse.ok) {
-        throw new Error(
-          loginData.detail || "Login failed"
-        );
+        throw new Error(loginData.detail || "Login failed");
       }
 
       const accessToken = loginData.access_token;
 
-      // Get logged-in student's profile
       const profileResponse = await fetch(`${API_URL}/me`, {
         headers: {
           Authorization: `Bearer ${accessToken}`,
@@ -244,7 +264,6 @@ function App() {
       });
 
       await fetchMyListings(accessToken);
-
     } catch (err) {
       setAuthMessage(err.message || "Something went wrong");
     } finally {
@@ -261,7 +280,9 @@ function App() {
     setMyItems([]);
     setShowMyListings(false);
     setShowForm(false);
+    setEditingItem(null);
     setShowAuth(false);
+    setDeleteMessage("");
 
     setMessage("You have logged out successfully.");
   };
@@ -278,9 +299,116 @@ function App() {
     await fetchMyListings();
 
     setShowMyListings(true);
+
     document.getElementById("marketplace")?.scrollIntoView({
       behavior: "smooth",
     });
+  };
+
+  // Open Edit Listing form with existing item details
+  const handleEditItem = (item) => {
+    setEditingItem(item);
+
+    setEditForm({
+      title: item.title || "",
+      description: item.description || "",
+      price: String(item.price ?? 0),
+      category: item.category || "Other",
+      location: item.location || "",
+    });
+
+    setEditMessage("");
+  };
+
+  // Save edited listing
+  const handleUpdateItem = async (e) => {
+    e.preventDefault();
+
+    if (!editingItem || !token) return;
+
+    setEditSubmitting(true);
+    setEditMessage("");
+
+    try {
+      const response = await fetch(
+        `${API_URL}/items/${editingItem.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: editForm.title.trim(),
+            description: editForm.description,
+            price: Number(editForm.price),
+            category: editForm.category,
+            location: editForm.location.trim(),
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Unable to update listing");
+      }
+
+      setEditingItem(null);
+      setEditMessage("");
+
+      setDeleteMessage("Listing updated successfully!");
+      setDeleteError(false);
+
+      await Promise.all([
+        fetchItems(),
+        fetchMyListings(),
+      ]);
+    } catch (err) {
+      setEditMessage(err.message || "Something went wrong");
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  // Delete a listing owned by the logged-in student
+  const handleDeleteItem = async (itemId) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this listing? This action cannot be undone."
+    );
+
+    if (!confirmed) return;
+
+    setDeletingItemId(itemId);
+    setDeleteMessage("");
+    setDeleteError(false);
+
+    try {
+      const response = await fetch(`${API_URL}/items/${itemId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "Unable to delete listing");
+      }
+
+      setDeleteMessage("Listing deleted successfully!");
+
+      await Promise.all([
+        fetchItems(),
+        fetchMyListings(),
+      ]);
+    } catch (err) {
+      setDeleteError(true);
+      setDeleteMessage(err.message || "Something went wrong");
+    } finally {
+      setDeletingItemId(null);
+    }
   };
 
   // Handle image selection
@@ -333,7 +461,6 @@ function App() {
     try {
       let imageUrl = "";
 
-      // Upload image to Supabase Storage
       if (selectedImage) {
         const imageData = new FormData();
         imageData.append("file", selectedImage);
@@ -357,7 +484,6 @@ function App() {
         imageUrl = uploadResult.image_url;
       }
 
-      // Save listing with JWT authentication
       const response = await fetch(`${API_URL}/items`, {
         method: "POST",
         headers: {
@@ -400,7 +526,6 @@ function App() {
       await fetchMyListings();
 
       setShowForm(false);
-
     } catch (err) {
       console.error("Listing error:", err);
       setMessage(err.message || "Something went wrong");
@@ -528,7 +653,9 @@ function App() {
           <div className="section-heading">
             <div>
               <span className="eyebrow">
-                {showMyListings ? "YOUR CAMPUS ACTIVITY" : "EXPLORE YOUR CAMPUS"}
+                {showMyListings
+                  ? "YOUR CAMPUS ACTIVITY"
+                  : "EXPLORE YOUR CAMPUS"}
               </span>
 
               <h2>
@@ -597,12 +724,27 @@ function App() {
           )}
 
           {showMyListings && (
-            <button
-              className="clear-filters back-marketplace"
-              onClick={() => setShowMyListings(false)}
-            >
-              ← Back to Marketplace
-            </button>
+            <>
+              <button
+                className="clear-filters back-marketplace"
+                onClick={() => {
+                  setShowMyListings(false);
+                  setDeleteMessage("");
+                }}
+              >
+                ← Back to Marketplace
+              </button>
+
+              {deleteMessage && (
+                <p
+                  className={`delete-message ${
+                    deleteError ? "delete-error" : ""
+                  }`}
+                >
+                  {deleteMessage}
+                </p>
+              )}
+            </>
           )}
 
           {loading && (
@@ -687,9 +829,30 @@ function App() {
                     </div>
 
                     {showMyListings && (
-                      <span className="my-listing-label">
-                        Your listing
-                      </span>
+                      <div className="my-listing-actions">
+                        <span className="my-listing-label">
+                          Your listing
+                        </span>
+
+                        <div className="listing-action-buttons">
+                          <button
+                            className="edit-listing-button"
+                            onClick={() => handleEditItem(item)}
+                          >
+                            Edit Listing
+                          </button>
+
+                          <button
+                            className="delete-listing-button"
+                            onClick={() => handleDeleteItem(item.id)}
+                            disabled={deletingItemId === item.id}
+                          >
+                            {deletingItemId === item.id
+                              ? "Deleting..."
+                              : "Delete Listing"}
+                          </button>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </article>
@@ -1018,6 +1181,127 @@ function App() {
                 {submitting
                   ? "Publishing..."
                   : "Publish Listing →"}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Listing Modal */}
+      {editingItem && (
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            if (!editSubmitting) {
+              setEditingItem(null);
+              setEditMessage("");
+            }
+          }}
+        >
+          <div
+            className="listing-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-heading">
+              <div>
+                <span className="eyebrow">
+                  MANAGE YOUR ITEM
+                </span>
+
+                <h2>Edit your listing</h2>
+
+                <p>Update your item details below.</p>
+              </div>
+
+              <button
+                className="close-button"
+                type="button"
+                onClick={() => {
+                  setEditingItem(null);
+                  setEditMessage("");
+                }}
+                disabled={editSubmitting}
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateItem}>
+              <label>
+                Item name *
+                <input
+                  name="title"
+                  value={editForm.title}
+                  onChange={handleEditChange}
+                  placeholder="Enter item name"
+                  required
+                />
+              </label>
+
+              <label>
+                Description
+                <textarea
+                  name="description"
+                  value={editForm.description}
+                  onChange={handleEditChange}
+                  placeholder="Describe your item and its condition..."
+                  rows="3"
+                />
+              </label>
+
+              <div className="form-row">
+                <label>
+                  Category *
+                  <select
+                    name="category"
+                    value={editForm.category}
+                    onChange={handleEditChange}
+                  >
+                    <option>Books</option>
+                    <option>Furniture</option>
+                    <option>Electronics</option>
+                    <option>Hostel Essentials</option>
+                    <option>Other</option>
+                  </select>
+                </label>
+
+                <label>
+                  Price (₹)
+                  <input
+                    type="number"
+                    name="price"
+                    value={editForm.price}
+                    onChange={handleEditChange}
+                    min="0"
+                    step="1"
+                    required
+                  />
+                </label>
+              </div>
+
+              <label>
+                Campus / Hostel location *
+                <input
+                  name="location"
+                  value={editForm.location}
+                  onChange={handleEditChange}
+                  placeholder="e.g. Hostel Block A"
+                  required
+                />
+              </label>
+
+              {editMessage && (
+                <p className="form-message">{editMessage}</p>
+              )}
+
+              <button
+                className="submit-listing"
+                type="submit"
+                disabled={editSubmitting}
+              >
+                {editSubmitting
+                  ? "Saving changes..."
+                  : "Save Changes →"}
               </button>
             </form>
           </div>

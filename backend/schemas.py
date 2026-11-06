@@ -53,3 +53,10 @@ class ItemResponse(BaseModel):
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str
+
+class ItemUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[float] = Field(default=None, ge=0)
+    category: Optional[str] = None
+    location: Optional[str] = None

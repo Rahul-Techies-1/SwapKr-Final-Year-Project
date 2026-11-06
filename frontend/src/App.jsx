@@ -32,6 +32,19 @@ function App() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
+  // AI Semantic Search states
+  const [aiQuery, setAiQuery] = useState("");
+  const [aiResults, setAiResults] = useState([]);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState("");
+  const [isAiSearchActive, setIsAiSearchActive] = useState(false);
+
+  // AI Similar Items Recommendation states
+  const [similarItems, setSimilarItems] = useState([]);
+  const [selectedSimilarItem, setSelectedSimilarItem] = useState(null);
+  const [similarLoading, setSimilarLoading] = useState(false);
+  const [similarError, setSimilarError] = useState("");
+
   // Delete listing states
   const [deletingItemId, setDeletingItemId] = useState(null);
   const [deleteMessage, setDeleteMessage] = useState("");
@@ -145,7 +158,7 @@ function App() {
     initializeApp();
   }, []);
 
-  // Search and category filtering
+  // Normal keyword search and category filtering
   const filteredItems = items.filter((item) => {
     const search = searchTerm.toLowerCase().trim();
 
@@ -162,11 +175,97 @@ function App() {
     return matchesSearch && matchesCategory;
   });
 
+  // Apply category filter to AI search results
+  const aiFilteredItems = aiResults.filter((item) => {
+    return (
+      selectedCategory === "All" ||
+      item.category?.toLowerCase() === selectedCategory.toLowerCase()
+    );
+  });
+
+  // Clear all search and category filters
   const clearFilters = () => {
     setSearchTerm("");
     setSelectedCategory("All");
+    setAiQuery("");
+    setAiResults([]);
+    setAiError("");
+    setIsAiSearchActive(false);
   };
 
+  // AI Semantic Search
+  const handleAiSearch = async (e) => {
+    e.preventDefault();
+
+    const query = aiQuery.trim();
+
+    if (query.length < 2) {
+      setAiError("Please enter at least 2 characters.");
+      return;
+    }
+
+    setAiLoading(true);
+    setAiError("");
+    setIsAiSearchActive(false);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/items/semantic-search?q=${encodeURIComponent(query)}`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.detail || "AI search failed.");
+      }
+
+      setAiResults(data);
+      setIsAiSearchActive(true);
+    } catch (err) {
+      setAiError(err.message || "Unable to perform AI search.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // Fetch AI-powered similar item recommendations
+  const handleFindSimilarItems = async (item) => {
+    setSelectedSimilarItem(item);
+    setSimilarItems([]);
+    setSimilarError("");
+    setSimilarLoading(true);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/items/${item.id}/similar`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Unable to fetch similar items."
+        );
+      }
+
+      setSimilarItems(data);
+    } catch (err) {
+      setSimilarError(
+        err.message || "Unable to load recommendations."
+      );
+    } finally {
+      setSimilarLoading(false);
+    }
+  };
+
+  // Close recommendations
+  const clearSimilarItems = () => {
+    setSelectedSimilarItem(null);
+    setSimilarItems([]);
+    setSimilarError("");
+  };
+
+  // Handle normal listing form changes
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -176,6 +275,7 @@ function App() {
     }));
   };
 
+  // Handle edit form changes
   const handleEditChange = (e) => {
     const { name, value } = e.target;
 
@@ -185,6 +285,7 @@ function App() {
     }));
   };
 
+  // Handle authentication form changes
   const handleAuthChange = (e) => {
     const { name, value } = e.target;
 
@@ -410,6 +511,11 @@ function App() {
         fetchItems(),
         fetchMyListings(),
       ]);
+
+      // Remove deleted item from current AI results too
+      setAiResults((previous) =>
+        previous.filter((item) => item.id !== itemId)
+      );
     } catch (err) {
       setDeleteError(true);
       setDeleteMessage(err.message || "Something went wrong");
@@ -603,7 +709,11 @@ function App() {
     }
   };
 
-  const displayedItems = showMyListings ? myItems : filteredItems;
+  const displayedItems = showMyListings
+    ? myItems
+    : isAiSearchActive
+      ? aiFilteredItems
+      : filteredItems;
 
   return (
     <div className="app">
@@ -741,7 +851,9 @@ function App() {
             <span className="item-count">
               {showMyListings
                 ? `${myItems.length} listings`
-                : `${filteredItems.length} of ${items.length} items`}
+                : isAiSearchActive
+                  ? `${aiFilteredItems.length} AI matches`
+                  : `${filteredItems.length} of ${items.length} items`}
             </span>
           </div>
 
@@ -792,6 +904,69 @@ function App() {
             </div>
           )}
 
+          {/* AI Semantic Search */}
+          {!showMyListings && (
+            <form
+              className="ai-search-container"
+              onSubmit={handleAiSearch}
+            >
+              <div className="ai-search-heading">
+                <div>
+                  <span className="ai-search-label">
+                    ✦ AI POWERED SEARCH
+                  </span>
+
+                  <h3>Search by meaning, not just keywords</h3>
+
+                  <p>
+                    Describe what you need, and ReCampus will
+                    find related items for you.
+                  </p>
+                </div>
+              </div>
+
+              <div className="ai-search-input-row">
+                <input
+                  type="text"
+                  value={aiQuery}
+                  onChange={(e) => setAiQuery(e.target.value)}
+                  placeholder="e.g. Something comfortable to sleep on..."
+                  minLength={2}
+                  maxLength={200}
+                />
+
+                <button type="submit" disabled={aiLoading}>
+                  {aiLoading ? "Searching..." : "✦ AI Search"}
+                </button>
+              </div>
+
+              {aiError && (
+                <p className="ai-search-error">{aiError}</p>
+              )}
+
+              {isAiSearchActive && (
+                <div className="ai-search-result-info">
+                  <span>
+                    ✦ AI results for "{aiQuery}" —{" "}
+                    {aiFilteredItems.length} matches
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsAiSearchActive(false);
+                      setAiResults([]);
+                      setAiQuery("");
+                      setAiError("");
+                    }}
+                  >
+                    Clear AI Search ×
+                  </button>
+                </div>
+              )}
+            </form>
+          )}
+
           {showMyListings && (
             <>
               <button
@@ -837,13 +1012,19 @@ function App() {
                   ? "You haven't posted any items yet"
                   : items.length === 0
                     ? "No items listed yet"
-                    : "No matching items found"}
+                    : isAiSearchActive
+                      ? "No related items found"
+                      : "No matching items found"}
               </h3>
 
               <p>
                 {showMyListings
                   ? "Start sharing your unused items with fellow students."
-                  : "Try another search or be the first to list an item."}
+                  : items.length === 0
+                    ? "Be the first to list an item."
+                    : isAiSearchActive
+                      ? "Try describing your requirement differently."
+                      : "Try another search or be the first to list an item."}
               </p>
 
               {showMyListings ? (
@@ -902,15 +1083,35 @@ function App() {
                     </div>
 
                     {!showMyListings && (
-                      <button
-                        className="contact-seller-button"
-                        onClick={() => handleContactSeller(item)}
-                        disabled={contactingItemId === item.id}
-                      >
-                        {contactingItemId === item.id
-                          ? "Connecting..."
-                          : "💬 Contact Seller on WhatsApp"}
-                      </button>
+                      <>
+                        <button
+                          className="similar-items-button"
+                          style={{
+                            display: "block",
+                            background: "red",
+                            color: "white",
+                            padding: "15px",
+                            width: "100%",
+                            visibility: "visible",
+                          }}
+                          onClick={() => handleFindSimilarItems(item)}
+                          disabled={similarLoading}
+                          type="button"
+                        >
+                          ✦ Find Similar Items
+                        </button>
+
+                        <button
+                          className="contact-seller-button"
+                          onClick={() => handleContactSeller(item)}
+                          disabled={contactingItemId === item.id}
+                          type="button"
+                        >
+                          {contactingItemId === item.id
+                            ? "Connecting..."
+                            : "💬 Contact Seller on WhatsApp"}
+                        </button>
+                      </>
                     )}
 
                     {showMyListings && (
@@ -942,6 +1143,123 @@ function App() {
                   </div>
                 </article>
               ))}
+            </div>
+          )}
+
+          {/* AI Similar Items Recommendations */}
+          {!showMyListings && selectedSimilarItem && (
+            <div className="similar-items-section">
+              <div className="similar-items-heading">
+                <div>
+                  <span className="ai-search-label">
+                    ✦ AI RECOMMENDATIONS
+                  </span>
+
+                  <h2>Similar items you might like</h2>
+
+                  <p>
+                    Recommendations based on{" "}
+                    <strong>{selectedSimilarItem.title}</strong>
+                  </p>
+                </div>
+
+                <button
+                  className="similar-close-button"
+                  onClick={clearSimilarItems}
+                  type="button"
+                  aria-label="Close recommendations"
+                >
+                  ×
+                </button>
+              </div>
+
+              {similarLoading && (
+                <p className="status">
+                  Finding similar items for you...
+                </p>
+              )}
+
+              {similarError && (
+                <p className="ai-search-error">
+                  {similarError}
+                </p>
+              )}
+
+              {!similarLoading &&
+                !similarError &&
+                similarItems.length === 0 && (
+                  <div className="empty-state">
+                    <div>🔎</div>
+                    <h3>No similar items found</h3>
+                    <p>
+                      Try exploring another listing.
+                    </p>
+                  </div>
+                )}
+
+              {!similarLoading &&
+                !similarError &&
+                similarItems.length > 0 && (
+                  <div className="items-grid">
+                    {similarItems.map((item) => (
+                      <article
+                        className="item-card"
+                        key={item.id}
+                      >
+                        <div className="item-image">
+                          {item.image_url ? (
+                            <img
+                              src={item.image_url}
+                              alt={item.title}
+                            />
+                          ) : (
+                            <span>📦</span>
+                          )}
+
+                          <span className="category-tag">
+                            {item.category || "Other"}
+                          </span>
+                        </div>
+
+                        <div className="item-details">
+                          <h3>{item.title}</h3>
+
+                          <p>
+                            {item.description ||
+                              "No description available"}
+                          </p>
+
+                          <div className="item-bottom">
+                            <strong>
+                              {item.price === 0
+                                ? "FREE"
+                                : `₹${item.price}`}
+                            </strong>
+
+                            <span>
+                              📍 {item.location || "Campus"}
+                            </span>
+                          </div>
+
+                          <button
+                            className="contact-seller-button"
+                            onClick={() =>
+                              handleContactSeller(item)
+                            }
+                            disabled={
+                              contactingItemId === item.id
+                            }
+                            type="button"
+                          >
+                            {contactingItemId === item.id
+                              ? "Connecting..."
+                              : "💬 Contact Seller on WhatsApp"}
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
             </div>
           )}
         </section>
@@ -1063,7 +1381,7 @@ function App() {
                       value={authForm.phone_number}
                       onChange={handleAuthChange}
                       placeholder="+919876543210"
-                      pattern="^\+?[0-9]{10,19}$"
+                      pattern="^\\+?[0-9]{10,19}$"
                       title="Enter your number with country code, e.g. +919876543210"
                       minLength="10"
                       maxLength="20"

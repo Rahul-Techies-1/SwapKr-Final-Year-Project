@@ -12,6 +12,8 @@ from sqlalchemy.orm import relationship
 
 from database import Base
 
+from pgvector.sqlalchemy import Vector
+
 
 # Student/User table
 class User(Base):
@@ -49,6 +51,9 @@ class Item(Base):
     category = Column(String(100))
 
     location = Column(String(200))
+
+        # AI semantic search embedding
+    embedding = Column(Vector(384), nullable=True)
 
     is_available = Column(Boolean, default=True)
 

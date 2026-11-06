@@ -1,5 +1,5 @@
 
-from fastapi import FastAPI, Depends, UploadFile, File, HTTPException
+from fastapi import FastAPI, Depends, UploadFile, File, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
@@ -12,7 +12,8 @@ from schemas import (
     UserCreate,
     UserResponse,
     UserLogin,
-    TokenResponse
+    TokenResponse,
+    SellerContactResponse
 )
 from storage import upload_item_image
 from auth import (
@@ -21,16 +22,8 @@ from auth import (
     create_access_token,
     get_current_user
 )
-from schemas import (
-    ItemCreate,
-    ItemUpdate,
-    ItemResponse,
-    UserCreate,
-    UserResponse,
-    UserLogin,
-    TokenResponse,
-    SellerContactResponse
-)
+from embedding_service import generate_item_embedding, generate_embedding
+
 
 app = FastAPI(title="ReCampus API")
 
@@ -62,7 +55,6 @@ def health_check():
     return {"status": "ReCampus backend is running"}
 
 
-# Signup
 # Signup
 @app.post("/signup", response_model=UserResponse, status_code=201)
 def signup(user: UserCreate, db: Session = Depends(get_db)):
@@ -140,6 +132,82 @@ def get_items(db: Session = Depends(get_db)):
         Item.is_available == True
     ).all()
 
+
+# AI Semantic Search
+@app.get("/items/semantic-search", response_model=list[ItemResponse])
+def semantic_search(
+    q: str = Query(..., min_length=2, max_length=200),
+    db: Session = Depends(get_db)
+):
+    try:
+        # Generate embedding for the search query
+        query_embedding = generate_embedding(q)
+
+        # Find the closest matching item embeddings
+        results = db.query(Item).filter(
+            Item.is_available == True,
+            Item.embedding.is_not(None)
+        ).order_by(
+            Item.embedding.cosine_distance(query_embedding)
+        ).limit(10).all()
+
+        return results
+
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail="AI search is temporarily unavailable."
+        )
+
+
+# AI-Powered Similar Items Recommendation
+@app.get(
+    "/items/{item_id}/similar",
+    response_model=list[ItemResponse]
+)
+def get_similar_items(
+    item_id: int,
+    db: Session = Depends(get_db)
+):
+    # Find the item selected by the student
+    selected_item = db.query(Item).filter(
+        Item.id == item_id,
+        Item.is_available == True
+    ).first()
+
+    if not selected_item:
+        raise HTTPException(
+            status_code=404,
+            detail="Item not found or no longer available"
+        )
+
+    # Recommendations require an existing embedding
+    if selected_item.embedding is None:
+        return []
+
+    try:
+        # Find the most semantically similar available items
+        similar_items = db.query(Item).filter(
+            Item.is_available == True,
+            Item.embedding.is_not(None),
+            Item.id != item_id
+        ).order_by(
+            Item.embedding.cosine_distance(
+                selected_item.embedding
+            )
+        ).limit(4).all()
+
+        return similar_items
+
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail="Similar item recommendations are temporarily unavailable."
+        )
+
+
+
+
 # Get seller contact details
 @app.get(
     "/items/{item_id}/seller-contact",
@@ -194,7 +262,7 @@ def get_my_listings(
     ).all()
 
 
-# Create a listing
+# Create a listing with AI embedding
 @app.post("/items", response_model=ItemResponse)
 def create_item(
     item: ItemCreate,
@@ -211,9 +279,23 @@ def create_item(
             detail="User account not found"
         )
 
+    try:
+        item_embedding = generate_item_embedding(
+            title=item.title,
+            description=item.description or "",
+            category=item.category or "",
+            location=item.location or ""
+        )
+    except Exception:
+        raise HTTPException(
+            status_code=503,
+            detail="AI embedding generation failed. Please try again."
+        )
+
     new_item = Item(
         **item.model_dump(),
-        owner_id=user_id
+        owner_id=user_id,
+        embedding=item_embedding
     )
 
     db.add(new_item)
@@ -264,11 +346,35 @@ def update_item(
             detail="Price cannot be empty"
         )
 
-    for field, value in update_data.items():
-        setattr(item, field, value)
+    semantic_fields = {
+        "title",
+        "description",
+        "category",
+        "location"
+    }
 
-    db.commit()
-    db.refresh(item)
+    try:
+        for field, value in update_data.items():
+            setattr(item, field, value)
+
+        # Regenerate embedding only when searchable details change
+        if semantic_fields.intersection(update_data.keys()):
+            item.embedding = generate_item_embedding(
+                title=item.title,
+                description=item.description or "",
+                category=item.category or "",
+                location=item.location or ""
+            )
+
+        db.commit()
+        db.refresh(item)
+
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=503,
+            detail="Unable to update listing or generate its AI embedding."
+        )
 
     return item
 
@@ -343,4 +449,3 @@ def delete_item(
     db.commit()
 
     return {"message": "Item deleted successfully"}
-

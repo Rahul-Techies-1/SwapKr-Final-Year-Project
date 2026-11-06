@@ -1084,3 +1084,680 @@ footer {
   font-size: 13px;
   font-weight: 600;
 }
+
+
+/* =========================================
+   ReCampus - Premium AI Smart Search
+========================================= */
+
+.ai-search-container {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  margin: 30px 0 38px;
+  padding: 30px 34px;
+  overflow: hidden;
+
+  background: linear-gradient(125deg, #ffffff 0%, #f0f7ef 55%, #e8f3e8 100%);
+  border: 1px solid #dceadd;
+  border-radius: 20px;
+
+  box-shadow:
+    0 8px 28px rgba(36, 92, 59, 0.06),
+    0 2px 6px rgba(36, 92, 59, 0.03);
+}
+
+/* Decorative background glow */
+.ai-search-container::before {
+  content: "";
+  position: absolute;
+  width: 230px;
+  height: 230px;
+  top: -125px;
+  right: -55px;
+  border-radius: 50%;
+  background: rgba(101, 168, 120, 0.12);
+  filter: blur(5px);
+  z-index: -1;
+}
+
+.ai-search-container::after {
+  content: "";
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  bottom: -100px;
+  left: 35%;
+  border-radius: 50%;
+  background: rgba(101, 168, 120, 0.09);
+  filter: blur(8px);
+  z-index: -1;
+}
+
+/* Heading area */
+
+.ai-search-heading {
+  position: relative;
+  z-index: 1;
+  margin-bottom: 22px;
+}
+
+.ai-search-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  padding: 7px 12px;
+  margin-bottom: 13px;
+
+  background: #e5f3e7;
+  border: 1px solid #d1e8d5;
+  border-radius: 30px;
+
+  color: #317a49;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.3px;
+}
+
+.ai-search-heading h2 {
+  margin: 0 0 9px;
+
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  color: #1c3527;
+  font-size: clamp(21px, 3vw, 27px);
+  font-weight: 800;
+  letter-spacing: -0.8px;
+  line-height: 1.35;
+}
+
+.ai-search-heading p {
+  margin: 0;
+  max-width: 620px;
+
+  color: #718077;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* Search input and button */
+
+.ai-search-input-row {
+  position: relative;
+  z-index: 1;
+
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  width: 100%;
+}
+
+.ai-search-input-row input {
+  flex: 1;
+  min-width: 0;
+  height: 54px;
+
+  padding: 0 18px;
+
+  background: #ffffff;
+  border: 1px solid #dce8dc;
+  border-radius: 11px;
+  outline: none;
+
+  color: #263c2d;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+
+  transition: all 0.25s ease;
+}
+
+.ai-search-input-row input::placeholder {
+  color: #a0ada2;
+}
+
+.ai-search-input-row input:focus {
+  border-color: #65a878;
+  box-shadow: 0 0 0 4px rgba(101, 168, 120, 0.13);
+}
+
+/* AI Search Button */
+
+.ai-search-input-row button {
+  min-width: 145px;
+  height: 54px;
+  padding: 0 22px;
+
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+
+  background: linear-gradient(135deg, #317a49, #245c3b);
+  border: 1px solid #245c3b;
+  border-radius: 11px;
+
+  color: #ffffff;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.ai-search-input-row button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #245c3b, #17462c);
+  transform: translateY(-2px);
+  box-shadow: 0 7px 16px rgba(36, 92, 59, 0.2);
+}
+
+.ai-search-input-row button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.ai-search-input-row button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* Error message */
+
+.ai-search-error {
+  position: relative;
+  z-index: 1;
+
+  margin-top: 13px;
+  padding: 11px 14px;
+
+  background: #fff3f1;
+  border: 1px solid #f5d5d0;
+  border-radius: 9px;
+
+  color: #b42318;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Search result information */
+
+.ai-search-result-info {
+  margin: 0 0 20px;
+  padding: 12px 16px;
+
+  background: #eaf4eb;
+  border: 1px solid #d6e9d8;
+  border-radius: 10px;
+
+  color: #317a49;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+/* Keep proper spacing before marketplace items */
+
+.ai-search-container + .items-grid {
+  margin-top: 0;
+}
+
+/* Tablet */
+
+@media (max-width: 800px) {
+  .ai-search-container {
+    padding: 25px;
+    margin: 25px 0 32px;
+  }
+
+  .ai-search-heading {
+    margin-bottom: 18px;
+  }
+}
+
+/* Mobile */
+
+@media (max-width: 520px) {
+  .ai-search-container {
+    padding: 21px 17px;
+    margin: 22px 0 28px;
+    border-radius: 15px;
+  }
+
+  .ai-search-heading h2 {
+    font-size: 21px;
+  }
+
+  .ai-search-heading p {
+    font-size: 12px;
+  }
+
+  .ai-search-input-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .ai-search-input-row input {
+    width: 100%;
+    height: 49px;
+    font-size: 12px;
+  }
+
+  .ai-search-input-row button {
+    width: 100%;
+    height: 49px;
+  }
+}
+
+
+/* =========================================
+   AI Similar Items Recommendations
+========================================= */
+
+.similar-items-button {
+  width: 100%;
+  margin-top: 14px;
+  padding: 11px 14px;
+
+  background: #edf7ef;
+  color: #286c40;
+  border: 1px solid #d5e9d8;
+  border-radius: 10px;
+
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.similar-items-button:hover:not(:disabled) {
+  background: #dcefe0;
+  border-color: #a9d3b1;
+  transform: translateY(-1px);
+}
+
+.similar-items-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.similar-items-section {
+  margin-top: 45px;
+  padding: 28px;
+
+  background: linear-gradient(135deg, #ffffff, #f0f7ef);
+  border: 1px solid #dceadd;
+  border-radius: 18px;
+
+  box-shadow: 0 8px 25px rgba(36, 92, 59, 0.05);
+}
+
+.similar-items-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.similar-items-heading h2 {
+  margin: 10px 0 7px;
+  color: #1c3527;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 24px;
+  letter-spacing: -0.7px;
+}
+
+.similar-items-heading p {
+  margin: 0;
+  color: #75847a;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.similar-items-heading p strong {
+  color: #317a49;
+}
+
+.similar-close-button {
+  flex-shrink: 0;
+  width: 35px;
+  height: 35px;
+
+  background: #e6f1e6;
+  border: none;
+  border-radius: 50%;
+
+  color: #315b3d;
+  font-size: 23px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.similar-close-button:hover {
+  background: #d4e8d6;
+  transform: rotate(90deg);
+}
+
+@media (max-width: 520px) {
+  .similar-items-section {
+    margin-top: 30px;
+    padding: 19px 15px;
+    border-radius: 14px;
+  }
+
+  .similar-items-heading h2 {
+    font-size: 20px;
+  }
+
+  .similar-items-heading p {
+    font-size: 12px;
+  }
+}
+
+/* AI Similar Items Button */
+
+.similar-items-button {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px 14px;
+
+  background: #edf7ef;
+  color: #286c40;
+  border: 1px solid #d5e9d8;
+  border-radius: 10px;
+
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.similar-items-button:hover {
+  background: #dcefe0;
+  border-color: #a9d3b1;
+  transform: translateY(-1px);
+}
+
+.similar-items-button:disabled {
+  opacity: 0.6 !important;
+  cursor: not-allowed;
+}
+
+/* Similar Items Recommendation Section */
+
+.similar-items-section {
+  margin-top: 45px;
+  padding: 28px;
+  background: linear-gradient(135deg, #ffffff, #f0f7ef);
+  border: 1px solid #dceadd;
+  border-radius: 18px;
+  box-shadow: 0 8px 25px rgba(36, 92, 59, 0.05);
+}
+
+.similar-items-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.similar-items-heading h2 {
+  margin: 10px 0 7px;
+  color: #1c3527;
+  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 24px;
+}
+
+.similar-items-heading p {
+  margin: 0;
+  color: #75847a;
+  font-size: 13px;
+}
+
+.similar-close-button {
+  width: 35px;
+  height: 35px;
+  background: #e6f1e6;
+  border: none;
+  border-radius: 50%;
+  color: #315b3d;
+  font-size: 23px;
+  cursor: pointer;
+}
+
+@media (max-width: 520px) {
+  .similar-items-section {
+    padding: 19px 15px;
+  }
+
+  .similar-items-heading h2 {
+    font-size: 20px;
+  }
+}
+
+
+.item-details .similar-items-button {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px 14px;
+
+  background-color: #edf7ef !important;
+  color: #286c40 !important;
+
+  border: 1px solid #d5e9d8 !important;
+  border-radius: 10px;
+
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.item-details .similar-items-button:hover:not(:disabled) {
+  background-color: #dcefe0 !important;
+  border-color: #a9d3b1 !important;
+  transform: translateY(-1px);
+}
+
+.item-details .similar-items-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* =========================================
+   ReCampus - Final UI Polish
+========================================= */
+
+/* Smooth global transitions */
+button,
+a,
+.item-card,
+input,
+select,
+textarea {
+  transition: all 0.25s ease;
+}
+
+/* Premium Navbar */
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 4px 18px rgba(24, 60, 43, 0.04);
+}
+
+.logo {
+  letter-spacing: -1px;
+}
+
+/* Hero refinement */
+.hero {
+  background:
+    radial-gradient(circle at 85% 20%, #dceedd 0, transparent 35%),
+    linear-gradient(120deg, #f0f6ef, #f8fbf6);
+}
+
+.hero h1 {
+  letter-spacing: -2.5px;
+}
+
+.hero-content p {
+  max-width: 510px;
+}
+
+/* Buttons */
+.post-button,
+.explore-button,
+.submit-listing {
+  box-shadow: 0 5px 14px rgba(36, 92, 59, 0.12);
+}
+
+.post-button:hover,
+.explore-button:hover,
+.submit-listing:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(36, 92, 59, 0.18);
+}
+
+/* Marketplace */
+.marketplace {
+  background: #f7f9f5;
+}
+
+.section-heading h2,
+.about h2 {
+  color: #1c3527;
+  letter-spacing: -1.2px;
+}
+
+/* Item cards */
+.item-card {
+  border: 1px solid #e6ece4;
+  border-radius: 18px;
+  box-shadow: 0 3px 12px rgba(30, 65, 40, 0.025);
+}
+
+.item-card:hover {
+  transform: translateY(-6px);
+  border-color: #cfe2d0;
+  box-shadow: 0 16px 35px rgba(35, 75, 45, 0.10);
+}
+
+.item-image {
+  background: linear-gradient(135deg, #edf4eb, #f7faf5);
+}
+
+.category-tag {
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+  color: #315b3d;
+}
+
+.item-details h3 {
+  letter-spacing: -0.3px;
+}
+
+/* Search controls */
+.search-box,
+.category-filter {
+  box-shadow: 0 3px 12px rgba(30, 65, 40, 0.025);
+}
+
+/* Modal refinement */
+.listing-modal,
+.auth-modal {
+  border: 1px solid #edf1eb;
+  box-shadow: 0 25px 80px rgba(15, 40, 23, 0.18);
+}
+
+/* About section */
+.about {
+  background: linear-gradient(135deg, #edf5ec, #f5f9f2);
+}
+
+.about p {
+  max-width: 650px;
+  margin: 12px auto;
+}
+
+/* Footer */
+footer {
+  background: #ffffff;
+  border-top: 1px solid #edf0eb;
+}
+
+/* Better keyboard accessibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(101, 168, 120, 0.35);
+  outline-offset: 3px;
+}
+
+/* Responsive polish */
+@media (max-width: 800px) {
+  .hero {
+    padding: 65px 7%;
+  }
+
+  .item-card:hover {
+    transform: translateY(-3px);
+  }
+}
+
+@media (max-width: 520px) {
+  .hero h1 {
+    letter-spacing: -1.5px;
+  }
+
+  .marketplace {
+    padding: 45px 5%;
+  }
+
+  .item-card {
+    border-radius: 15px;
+  }
+
+  .section-heading {
+    margin-bottom: 25px;
+  }
+}
+
+/* ReCampus - Slightly Darker Background */
+
+:root {
+  background: #edf2eb;
+}
+
+body {
+  background: #edf2eb;
+}
+
+.marketplace {
+  background: #edf2eb;
+}
+
+.hero {
+  background:
+    radial-gradient(circle at 85% 20%, #cbdcc9 0, transparent 35%),
+    linear-gradient(120deg, #e4ede2, #edf3e9);
+}
+
+.about {
+  background: linear-gradient(135deg, #e2ebe0, #eaf1e6);
+}
+

@@ -1379,12 +1379,18 @@ function App() {
                       type="tel"
                       name="phone_number"
                       value={authForm.phone_number}
-                      onChange={handleAuthChange}
+                      onChange={(e) =>{
+                        const value = e.target.value.replace(/[^\d+]/g, "");
+                        setAuthForm((previous) =>({
+                          ...previous,
+                          phone_number: value,
+                          }));
+                        }}
                       placeholder="+919876543210"
-                      pattern="^\\+?[0-9]{10,19}$"
-                      title="Enter your number with country code, e.g. +919876543210"
+                      pattern="(\+91)?[6-9][0-9]{9}"
+                      title="Enter a valid 10-digit Indian mobile number, optionally with +91"
                       minLength="10"
-                      maxLength="20"
+                      maxLength="13"
                       required
                     />
                   </label>
